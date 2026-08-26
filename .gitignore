@@ -1,0 +1,11 @@
+node_modules/
+dist/
+core-free-icons/
+icons-data.js
+server.mjs
+generate-icons-data.mjs
+brand.svg
+!public/brand.svg
+!src/data/icons-data.js
+*.tgz
+*.log
