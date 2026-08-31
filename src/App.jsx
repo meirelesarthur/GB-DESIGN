@@ -61,15 +61,20 @@ const svgFor = (icon, color) =>
     .replace(/(<svg[^>]*>)/, `$1<title>${icon.label}</title>`)
     .replaceAll("currentColor", color);
 const devUse = (icon) =>
-  icon.family === "Iconoir Regular"
+  icon.family === "GB Icons"
     ? [
-        "npm i iconoir-react",
-        `import { ${icon.label.replace(/(^|[-_])(\w)/g, (_, __, l) => l.toUpperCase())} } from 'iconoir-react';`,
+        "Disponível no GB Icons",
+        "Copie o SVG ou faça o download para usar no seu projeto.",
       ]
-    : [
-        "npm i @hugeicons/core-free-icons",
-        `import { ${icon.label} } from '@hugeicons/core-free-icons';`,
-      ];
+    : icon.family === "Iconoir Regular"
+      ? [
+          "npm i iconoir-react",
+          `import { ${icon.label.replace(/(^|[-_])(\w)/g, (_, __, l) => l.toUpperCase())} } from 'iconoir-react';`,
+        ]
+      : [
+          "npm i @hugeicons/core-free-icons",
+          `import { ${icon.label} } from '@hugeicons/core-free-icons';`,
+        ];
 
 export default function App() {
   const [query, setQuery] = useState(""),
