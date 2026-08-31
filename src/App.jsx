@@ -36,9 +36,9 @@ const norm = (v) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 const iconMap = new Map(
-  iconsData.map(([name, svg, family, label = name]) => [
+  iconsData.map(([name, svg, family, label]) => [
     name,
-    { name, svg, family, label },
+    { name, svg, family, label: label || name },
   ]),
 );
 const copy = async (text) => {
