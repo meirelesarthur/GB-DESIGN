@@ -1,19 +1,315 @@
-import { useMemo, useState } from 'react';
-import { iconsData } from './data/icons-data';
+import { useMemo, useState } from "react";
+import { iconsData } from "./data/icons-data";
 
-const aliases={casa:['home','house'],perfil:['user','account','person'],usuario:['user','account'],lupa:['search','find'],busca:['search','find'],seta:['arrow','chevron'],calendario:['calendar','date'],pasta:['folder'],arquivo:['file','document'],foto:['image','camera'],mensagem:['chat','message','mail'],cadeado:['lock','security'],carrinho:['cart','shopping'],configuracao:['setting','cog','gear']};
-const categories={Todos:[],Interface:['home','menu','layout','dashboard','button'],Navegação:['arrow','chevron','direction','map','location'],Pessoas:['user','person','account','profile'],Arquivos:['file','folder','document'],Comunicação:['chat','message','mail','phone'],Mídia:['image','camera','video','music','play'],Comércio:['cart','shop','money','wallet','card'],Segurança:['lock','shield','key','security'],Configurações:['setting','cog','gear','adjust'],Social:['heart','like','share','brand']};
-const norm=v=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-const iconMap=new Map(iconsData.map(([name,svg,family,label=name])=>[name,{name,svg,family,label}]));
-const copy=async text=>{try{await navigator.clipboard.writeText(text)}catch{const t=document.createElement('textarea');t.value=text;document.body.append(t);t.select();document.execCommand('copy');t.remove()}};
-const svgFor=(icon,color)=>icon.svg.replace('<svg ',`<svg id="${icon.label}" `).replace(/(<svg[^>]*>)/,`$1<title>${icon.label}</title>`).replaceAll('currentColor',color);
-const devUse=icon=>icon.family==='Phosphor Regular'?['npm i @phosphor-icons/react',`import { ${icon.label} } from '@phosphor-icons/react';`]:icon.family==='Iconoir Regular'?['npm i iconoir-react',`import { ${icon.label.replace(/(^|[-_])(\w)/g,(_,__,l)=>l.toUpperCase())} } from 'iconoir-react';`]:['npm i @hugeicons/core-free-icons',`import { ${icon.label} } from '@hugeicons/core-free-icons';`];
+const aliases = {
+  casa: ["home", "house"],
+  perfil: ["user", "account", "person"],
+  usuario: ["user", "account"],
+  lupa: ["search", "find"],
+  busca: ["search", "find"],
+  seta: ["arrow", "chevron"],
+  calendario: ["calendar", "date"],
+  pasta: ["folder"],
+  arquivo: ["file", "document"],
+  foto: ["image", "camera"],
+  mensagem: ["chat", "message", "mail"],
+  cadeado: ["lock", "security"],
+  carrinho: ["cart", "shopping"],
+  configuracao: ["setting", "cog", "gear"],
+};
+const categories = {
+  Todos: [],
+  Interface: ["home", "menu", "layout", "dashboard", "button"],
+  Navegação: ["arrow", "chevron", "direction", "map", "location"],
+  Pessoas: ["user", "person", "account", "profile"],
+  Arquivos: ["file", "folder", "document"],
+  Comunicação: ["chat", "message", "mail", "phone"],
+  Mídia: ["image", "camera", "video", "music", "play"],
+  Comércio: ["cart", "shop", "money", "wallet", "card"],
+  Segurança: ["lock", "shield", "key", "security"],
+  Configurações: ["setting", "cog", "gear", "adjust"],
+  Social: ["heart", "like", "share", "brand"],
+};
+const norm = (v) =>
+  v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+const iconMap = new Map(
+  iconsData.map(([name, svg, family, label = name]) => [
+    name,
+    { name, svg, family, label },
+  ]),
+);
+const copy = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const t = document.createElement("textarea");
+    t.value = text;
+    document.body.append(t);
+    t.select();
+    document.execCommand("copy");
+    t.remove();
+  }
+};
+const svgFor = (icon, color) =>
+  icon.svg
+    .replace("<svg ", `<svg id="${icon.label}" stroke-width="1.2" `)
+    .replace(/stroke-width=(['"])[^'"]*\1/g, 'stroke-width="1.2"')
+    .replace(/stroke-width:\s*[\d.]+/g, "stroke-width:1.2")
+    .replace(/(<svg[^>]*>)/, `$1<title>${icon.label}</title>`)
+    .replaceAll("currentColor", color);
+const devUse = (icon) =>
+  icon.family === "Iconoir Regular"
+    ? [
+        "npm i iconoir-react",
+        `import { ${icon.label.replace(/(^|[-_])(\w)/g, (_, __, l) => l.toUpperCase())} } from 'iconoir-react';`,
+      ]
+    : [
+        "npm i @hugeicons/core-free-icons",
+        `import { ${icon.label} } from '@hugeicons/core-free-icons';`,
+      ];
 
-export default function App(){
- const [query,setQuery]=useState(''),[family,setFamily]=useState(''),[category,setCategory]=useState('Todos'),[size,setSize]=useState(32),[color,setColor]=useState('#047857'),[selected,setSelected]=useState(null),[toast,setToast]=useState('');
- const show=m=>{setToast(m);setTimeout(()=>setToast(''),1500)};
- const results=useMemo(()=>{const q=norm(query),terms=[q,...Object.entries(aliases).filter(([a])=>a.includes(q)||q.includes(a)).flatMap(([,v])=>v)].filter(Boolean),keys=categories[category]||[];return [...iconMap.values()].filter(i=>{const text=norm(`${i.name} ${i.label}`);return(!family||i.family===family)&&(!q||terms.some(t=>text.includes(t)))&&(!keys.length||keys.some(k=>text.includes(k)))}).sort((a,b)=>a.label.localeCompare(b.label))},[query,family,category]);
- const detail=selected&&iconMap.get(selected); const [detailSize,setDetailSize]=useState(32),[detailColor,setDetailColor]=useState('#047857'); const open=i=>{setSelected(i.name);setDetailSize(size);setDetailColor(color)};
- return <><header className="topbar"><img src="/brand.svg" alt="GB Icons"/><nav>Explorar　 Biblioteca　 Favoritos</nav></header><section className="hero"><input aria-label="Buscar ícones" value={query} onChange={e=>{setQuery(e.target.value);setFamily('')}} placeholder="Busque por nome, por exemplo: arrow, user, home..."/><div className="filters"><button className={!family?'active':''} onClick={()=>setFamily('')}>Todos</button><button className={family==='Hugeicons'?'active':''} onClick={()=>setFamily('Hugeicons')}>Hugeicons Core Free</button><button className={family==='Phosphor Regular'?'active':''} onClick={()=>setFamily('Phosphor Regular')}>Phosphor Regular</button><button className={family==='Iconoir Regular'?'active':''} onClick={()=>setFamily('Iconoir Regular')}>Iconoir Regular</button></div></section><section className="global"><label>Estilo <select disabled><option>Regular</option></select></label><label>Tamanho <output>{size}px</output><input type="range" min="16" max="64" value={size} onChange={e=>setSize(+e.target.value)}/></label><label>Cor <input type="color" value={color} onChange={e=>setColor(e.target.value.toUpperCase())}/><input value={color} onChange={e=>/^#[0-9A-F]{6}$/i.test(e.target.value)&&setColor(e.target.value.toUpperCase())}/></label><button onClick={()=>{setSize(32);setColor('#047857')}}>Redefinir</button></section><main className="catalog"><aside className="categories"><b>Categorias</b>{Object.entries(categories).map(([name,keys])=>{const count=keys.length?[...iconMap.values()].filter(i=>keys.some(k=>norm(`${i.name} ${i.label}`).includes(k))).length:iconMap.size;return <button className={category===name?'active':''} key={name} onClick={()=>setCategory(name)}><span>{name}</span><small>{count}</small></button>})}</aside><section className="catalog-content"><h2>{category==='Todos'?'Todos os ícones':category}</h2><p>{results.length.toLocaleString('pt-BR')} ícones disponíveis</p><div className="grid" style={{'--icon-size':`${size}px`,'--icon-color':color}}>{results.slice(0,500).map(icon=><button className="card" key={icon.name} aria-label={`Abrir ${icon.label}`} onClick={()=>open(icon)}><span className="preview" dangerouslySetInnerHTML={{__html:icon.svg}}/></button>)}</div></section></main>{detail&&<><div className="backdrop" onClick={()=>setSelected(null)}/><aside className="drawer"><div className="drawer-body"><button className="close" onClick={()=>setSelected(null)}>×</button><h2>{detail.label}</h2><p>{detail.family}</p><div className="large-preview" style={{color:detailColor}} dangerouslySetInnerHTML={{__html:detail.svg}}/><label>Tamanho <input type="range" min="16" max="96" value={detailSize} onChange={e=>setDetailSize(+e.target.value)}/>{detailSize}px</label><label>Cor <input type="color" value={detailColor} onChange={e=>setDetailColor(e.target.value.toUpperCase())}/></label><Code title="Instalação" value={devUse(detail)[0]} show={show}/><Code title="Import para React" value={devUse(detail)[1]} show={show}/></div><div className="drawer-actions"><button onClick={async()=>{await copy(svgFor(detail,detailColor));show('SVG copiado — cole no Figma')}}>Copiar SVG p/ Figma</button><a download={`${detail.label}.svg`} href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgFor(detail,detailColor))}`}>Baixar SVG</a></div></aside></>}{toast&&<div className="toast">{toast}</div>}</>
+export default function App() {
+  const [query, setQuery] = useState(""),
+    [family, setFamily] = useState(""),
+    [category, setCategory] = useState("Todos"),
+    [size, setSize] = useState(32),
+    [color, setColor] = useState("#047857"),
+    [selected, setSelected] = useState(null),
+    [toast, setToast] = useState("");
+  const show = (m) => {
+    setToast(m);
+    setTimeout(() => setToast(""), 1500);
+  };
+  const results = useMemo(() => {
+    const q = norm(query),
+      terms = [
+        q,
+        ...Object.entries(aliases)
+          .filter(([a]) => a.includes(q) || q.includes(a))
+          .flatMap(([, v]) => v),
+      ].filter(Boolean),
+      keys = categories[category] || [];
+    return [...iconMap.values()]
+      .filter((i) => {
+        const text = norm(`${i.name} ${i.label}`);
+        return (
+          (!family || i.family === family) &&
+          (!q || terms.some((t) => text.includes(t))) &&
+          (!keys.length || keys.some((k) => text.includes(k)))
+        );
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [query, family, category]);
+  const detail = selected && iconMap.get(selected);
+  const [detailSize, setDetailSize] = useState(32),
+    [detailColor, setDetailColor] = useState("#047857");
+  const open = (i) => {
+    setSelected(i.name);
+    setDetailSize(size);
+    setDetailColor(color);
+  };
+  return (
+    <>
+      <header className="topbar">
+        <img src="/brand.svg" alt="GB Icons" />
+        <nav>Explorar　 Biblioteca　 Favoritos</nav>
+      </header>
+      <section className="hero">
+        <input
+          aria-label="Buscar ícones"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setFamily("");
+          }}
+          placeholder="Busque por nome, por exemplo: arrow, user, home..."
+        />
+        <div className="filters">
+          <button
+            className={!family ? "active" : ""}
+            onClick={() => setFamily("")}
+          >
+            Todos
+          </button>
+          <button
+            className={family === "Hugeicons" ? "active" : ""}
+            onClick={() => setFamily("Hugeicons")}
+          >
+            Hugeicons Core Free
+          </button>
+          <button
+            className={family === "Iconoir Regular" ? "active" : ""}
+            onClick={() => setFamily("Iconoir Regular")}
+          >
+            Iconoir Regular
+          </button>
+        </div>
+      </section>
+      <section className="global">
+        <label>
+          Estilo{" "}
+          <select disabled>
+            <option>Regular</option>
+          </select>
+        </label>
+        <label>
+          Tamanho <output>{size}px</output>
+          <input
+            type="range"
+            min="16"
+            max="64"
+            value={size}
+            onChange={(e) => setSize(+e.target.value)}
+          />
+        </label>
+        <label>
+          Cor{" "}
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value.toUpperCase())}
+          />
+          <input
+            value={color}
+            onChange={(e) =>
+              /^#[0-9A-F]{6}$/i.test(e.target.value) &&
+              setColor(e.target.value.toUpperCase())
+            }
+          />
+        </label>
+        <button
+          onClick={() => {
+            setSize(32);
+            setColor("#047857");
+          }}
+        >
+          Redefinir
+        </button>
+      </section>
+      <main className="catalog">
+        <aside className="categories">
+          <b>Categorias</b>
+          {Object.entries(categories).map(([name, keys]) => {
+            const count = keys.length
+              ? [...iconMap.values()].filter((i) =>
+                  keys.some((k) => norm(`${i.name} ${i.label}`).includes(k)),
+                ).length
+              : iconMap.size;
+            return (
+              <button
+                className={category === name ? "active" : ""}
+                key={name}
+                onClick={() => setCategory(name)}
+              >
+                <span>{name}</span>
+                <small>{count}</small>
+              </button>
+            );
+          })}
+        </aside>
+        <section className="catalog-content">
+          <h2>{category === "Todos" ? "Todos os ícones" : category}</h2>
+          <p>{results.length.toLocaleString("pt-BR")} ícones disponíveis</p>
+          <div
+            className="grid"
+            style={{ "--icon-size": `${size}px`, "--icon-color": color }}
+          >
+            {results.slice(0, 500).map((icon) => (
+              <button
+                className="card"
+                key={icon.name}
+                aria-label={`Abrir ${icon.label}`}
+                onClick={() => open(icon)}
+              >
+                <span
+                  className="preview"
+                  dangerouslySetInnerHTML={{ __html: icon.svg }}
+                />
+              </button>
+            ))}
+          </div>
+        </section>
+      </main>
+      {detail && (
+        <>
+          <div className="backdrop" onClick={() => setSelected(null)} />
+          <aside className="drawer">
+            <div className="drawer-body">
+              <button className="close" onClick={() => setSelected(null)}>
+                ×
+              </button>
+              <h2>{detail.label}</h2>
+              <p>{detail.family}</p>
+              <div
+                className="large-preview"
+                style={{ color: detailColor }}
+                dangerouslySetInnerHTML={{ __html: detail.svg }}
+              />
+              <label>
+                Tamanho{" "}
+                <input
+                  type="range"
+                  min="16"
+                  max="96"
+                  value={detailSize}
+                  onChange={(e) => setDetailSize(+e.target.value)}
+                />
+                {detailSize}px
+              </label>
+              <label>
+                Cor{" "}
+                <input
+                  type="color"
+                  value={detailColor}
+                  onChange={(e) => setDetailColor(e.target.value.toUpperCase())}
+                />
+              </label>
+              <Code title="Instalação" value={devUse(detail)[0]} show={show} />
+              <Code
+                title="Import para React"
+                value={devUse(detail)[1]}
+                show={show}
+              />
+            </div>
+            <div className="drawer-actions">
+              <button
+                onClick={async () => {
+                  await copy(svgFor(detail, detailColor));
+                  show("SVG copiado — cole no Figma");
+                }}
+              >
+                Copiar SVG p/ Figma
+              </button>
+              <a
+                download={`${detail.label}.svg`}
+                href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgFor(detail, detailColor))}`}
+              >
+                Baixar SVG
+              </a>
+            </div>
+          </aside>
+        </>
+      )}
+      {toast && <div className="toast">{toast}</div>}
+    </>
+  );
 }
-function Code({title,value,show}){return <section className="code"><small>{title}</small><pre>{value}</pre><button onClick={async()=>{await copy(value);show(`${title} copiado`)}}>Copiar</button></section>}
+function Code({ title, value, show }) {
+  return (
+    <section className="code">
+      <small>{title}</small>
+      <pre>{value}</pre>
+      <button
+        onClick={async () => {
+          await copy(value);
+          show(`${title} copiado`);
+        }}
+      >
+        Copiar
+      </button>
+    </section>
+  );
+}

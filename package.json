@@ -9,9 +9,7 @@
   },
   "type": "module",
   "dependencies": {
-    "@phosphor-icons/core": "^2.1.1",
     "iconoir": "^7.12.1",
-    "phosphor-icons": "^1.4.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
