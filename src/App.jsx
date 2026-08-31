@@ -3,19 +3,36 @@ import { iconsData } from "./data/icons-data";
 
 const aliases = {
   casa: ["home", "house"],
+  lar: ["home", "house"],
+  moradia: ["home", "house", "building"],
   perfil: ["user", "account", "person"],
   usuario: ["user", "account"],
+  pessoa: ["user", "person", "profile"],
+  entrar: ["login", "sign in", "user"],
+  sair: ["logout", "sign out"],
   lupa: ["search", "find"],
   busca: ["search", "find"],
   seta: ["arrow", "chevron"],
+  voltar: ["back", "arrow left", "chevron left"],
+  avancar: ["forward", "arrow right", "chevron right"],
   calendario: ["calendar", "date"],
+  relogio: ["clock", "time", "timer"],
   pasta: ["folder"],
   arquivo: ["file", "document"],
   foto: ["image", "camera"],
+  imagem: ["image", "picture", "photo"],
   mensagem: ["chat", "message", "mail"],
+  email: ["mail", "message"],
+  telefone: ["phone", "call"],
   cadeado: ["lock", "security"],
+  senha: ["password", "lock", "key"],
   carrinho: ["cart", "shopping"],
+  compras: ["cart", "shopping", "store"],
   configuracao: ["setting", "cog", "gear"],
+  favorito: ["heart", "star", "bookmark"],
+  notificacao: ["notification", "bell", "alert"],
+  baixar: ["download", "arrow down"],
+  enviar: ["send", "upload", "arrow up"],
 };
 const categories = {
   Todos: [],
@@ -35,10 +52,72 @@ const norm = (v) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
+const searchText = (value) =>
+  norm(value.replace(/([a-z\d])([A-Z])/g, "$1 $2"))
+    .replace(/[^a-z\d]+/g, " ")
+    .trim();
+const wordsFor = (value) => searchText(value).split(" ").filter(Boolean);
+const levenshtein = (a, b) => {
+  if (a === b) return 0;
+  if (!a || !b) return Math.max(a.length, b.length);
+  let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let row = 1; row <= a.length; row += 1) {
+    const current = [row];
+    for (let column = 1; column <= b.length; column += 1) {
+      current[column] = Math.min(
+        current[column - 1] + 1,
+        previous[column] + 1,
+        previous[column - 1] + (a[row - 1] === b[column - 1] ? 0 : 1),
+      );
+    }
+    previous = current;
+  }
+  return previous[b.length];
+};
+const typoLimit = (term) =>
+  term.length < 3 ? 0 : term.length < 5 ? 2 : term.length < 8 ? 2 : 3;
+const expandedTerms = (query) => {
+  const terms = new Set(wordsFor(query));
+  for (const [alias, related] of Object.entries(aliases)) {
+    const distance = levenshtein(query, alias);
+    if (
+      alias === query ||
+      alias.includes(query) ||
+      query.includes(alias) ||
+      distance <= typoLimit(query)
+    ) {
+      related.flatMap(wordsFor).forEach((term) => terms.add(term));
+    }
+  }
+  return [...terms];
+};
+const relevance = (icon, terms) => {
+  const scores = terms.map((term) => {
+    if (icon.searchWords.includes(term)) return 0;
+    if (icon.searchWords.some((word) => word.startsWith(term))) return 2;
+    if (icon.search.includes(term)) return 4;
+    const nearest = Math.min(
+      ...icon.searchWords.map((word) => levenshtein(term, word)),
+    );
+    return nearest <= typoLimit(term) ? 10 + nearest : Infinity;
+  });
+  return scores.some(Number.isFinite) ? Math.min(...scores) : Infinity;
+};
 const iconMap = new Map(
   iconsData.map(([name, svg, family, label]) => [
     name,
-    { name, svg, family, label: label || name },
+    (() => {
+      const title = label || name;
+      const search = searchText(`${name} ${title}`);
+      return {
+        name,
+        svg,
+        family,
+        label: title,
+        search,
+        searchWords: wordsFor(search),
+      };
+    })(),
   ]),
 );
 const copy = async (text) => {
@@ -89,24 +168,25 @@ export default function App() {
     setTimeout(() => setToast(""), 1500);
   };
   const results = useMemo(() => {
-    const q = norm(query),
-      terms = [
-        q,
-        ...Object.entries(aliases)
-          .filter(([a]) => a.includes(q) || q.includes(a))
-          .flatMap(([, v]) => v),
-      ].filter(Boolean),
+    const q = searchText(query),
+      terms = q ? expandedTerms(q) : [],
       keys = categories[category] || [];
     return [...iconMap.values()]
-      .filter((i) => {
-        const text = norm(`${i.name} ${i.label}`);
-        return (
-          (!family || i.family === family) &&
-          (!q || terms.some((t) => text.includes(t))) &&
-          (!keys.length || keys.some((k) => text.includes(k)))
-        );
+      .map((i) => {
+        const score = q ? relevance(i, terms) : 0;
+        return !family || i.family === family
+          ? { icon: i, score }
+          : { icon: i, score: Infinity };
       })
-      .sort((a, b) => a.label.localeCompare(b.label));
+      .filter(
+        ({ icon, score }) =>
+          Number.isFinite(score) &&
+          (!keys.length || keys.some((key) => icon.search.includes(key))),
+      )
+      .sort(
+        (a, b) => a.score - b.score || a.icon.label.localeCompare(b.icon.label),
+      )
+      .map(({ icon }) => icon);
   }, [query, family, category]);
   const detail = selected && iconMap.get(selected);
   const [detailSize, setDetailSize] = useState(32),
